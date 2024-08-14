@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	todo_protobuf_v1 "github.com/IldarGaleev/todo-backend-service/pkg/grpc/proto"
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,12 @@ type GetTaskByIDResponse struct {
 	Task TaskItem `json:"task"`
 }
 
+type LoginResponse struct {
+	GeneralResponse
+	Token string `json:"token"`
+	// RefreshToken string `json:"refresh_token"`
+}
+
 func SendErrorResponse(c *gin.Context, code int) {
 	c.IndentedJSON(
 		code,
@@ -62,7 +69,7 @@ func SendErrorResponse(c *gin.Context, code int) {
 func CreateHandlerGetTaskList(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resp, err := client.ListTasks(c.Request.Context(), &todo_protobuf_v1.ListTasksRequest{
-			UserId: 1,
+			UserId: c.GetUint64("userID"),
 		})
 
 		if err != nil {
@@ -96,9 +103,6 @@ func CreateHandlerGetTaskList(client todo_protobuf_v1.ToDoServiceClient) gin.Han
 func CreateHandlerGetTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		//token := c.Request.Header.Get("Authorization")
-		//TODO: check auth
-
 		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
 
 		if err != nil {
@@ -108,7 +112,7 @@ func CreateHandlerGetTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.Han
 
 		resp, err := client.GetTaskByID(c.Request.Context(), &todo_protobuf_v1.TaskByIdRequest{
 			TaskId: taskID,
-			UserId: 1,
+			UserId: c.GetUint64("userID"),
 		})
 
 		if err != nil {
@@ -137,9 +141,6 @@ func CreateHandlerGetTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.Han
 func CreateHandlerDeleteTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		//token := c.Request.Header.Get("Authorization")
-		//TODO: check auth
-
 		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
 
 		if err != nil {
@@ -149,7 +150,7 @@ func CreateHandlerDeleteTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.
 
 		_, err = client.DeleteTaskByID(c.Request.Context(), &todo_protobuf_v1.TaskByIdRequest{
 			TaskId: taskID,
-			UserId: 1,
+			UserId: c.GetUint64("userID"),
 		})
 
 		if err != nil {
@@ -172,9 +173,6 @@ func CreateHandlerDeleteTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.
 func CreateHandlerUpdateTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		//token := c.Request.Header.Get("Authorization")
-		//TODO: check auth
-
 		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
 		var changes TaskItemChanges
 		c.BindJSON(&changes)
@@ -186,7 +184,7 @@ func CreateHandlerUpdateTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.
 
 		_, err = client.UpdateTaskByID(c.Request.Context(), &todo_protobuf_v1.UpdateTaskByIdRequest{
 			TaskId: taskID,
-			UserId: 1,
+			UserId: c.GetUint64("userID"),
 			Title:  changes.Title,
 			IsDone: changes.IsDone,
 		})
@@ -208,17 +206,12 @@ func CreateHandlerUpdateTaskByID(client todo_protobuf_v1.ToDoServiceClient) gin.
 
 func CreateHandlerCreateTask(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
-		//token := c.Request.Header.Get("Authorization")
-		//TODO: check auth
-
 		var changes TaskItemChanges
 		c.BindJSON(&changes)
 
-
 		resp, err := client.CreateTask(c.Request.Context(), &todo_protobuf_v1.CreateTaskRequest{
-			Title: *changes.Title,
-			UserId: 1,
+			Title:  *changes.Title,
+			UserId: c.GetUint64("userID"),
 		})
 
 		if err != nil {
@@ -226,14 +219,101 @@ func CreateHandlerCreateTask(client todo_protobuf_v1.ToDoServiceClient) gin.Hand
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK,GetTaskByIDResponse{
+		c.IndentedJSON(http.StatusOK, GetTaskByIDResponse{
 			GeneralResponse: GeneralResponse{
 				Status: StatusOK,
 			},
 			Task: TaskItem{
-				ID: resp.GetTaskId(),
+				ID:    resp.GetTaskId(),
 				Title: *changes.Title,
 			},
+		})
+	}
+}
+
+func CreateJWTAuthMiddleware(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Request.Header.Get("Authorization")
+		
+		if token == "" {
+			SendErrorResponse(c,http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
+		parts:=strings.Split(token, " ")
+		method, token := parts[0], parts[1]
+
+		if strings.ToLower(method) != "bearer"{
+			SendErrorResponse(c,http.StatusBadRequest)
+			c.Abort()
+			return
+		}
+
+		resp, err := client.CheckSecret(c.Request.Context(), &todo_protobuf_v1.CheckSecretRequest{
+			Secret: token,
+		})
+
+		if err != nil {
+			SendErrorResponse(c,http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
+		c.Set("userID",resp.UserId)
+		c.Set("jwtToken",token)
+		c.Next()
+	}
+}
+
+func CreateHandlerLogin(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		email, pass, hasAuth := c.Request.BasicAuth()
+
+		if !hasAuth {
+			c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+			SendErrorResponse(c, http.StatusUnauthorized)
+			return
+		}
+
+		resp, err := client.Login(c.Request.Context(), &todo_protobuf_v1.LoginRequest{
+			Email:    email,
+			Password: pass,
+		})
+
+		if err != nil {
+			if status.Code(err) == codes.PermissionDenied {
+				SendErrorResponse(c, http.StatusUnauthorized)
+				return
+			}
+			SendErrorResponse(c, http.StatusInternalServerError)
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, LoginResponse{
+			GeneralResponse: GeneralResponse{
+				Status: StatusOK,
+			},
+			Token: resp.GetToken(),
+		})
+	}
+}
+
+func CreateHandlerLogout(client todo_protobuf_v1.ToDoServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		_, err := client.Logout(c.Request.Context(), &todo_protobuf_v1.LogoutRequest{
+			Token: c.GetString("jwtToken"),
+		})
+
+		if err != nil {
+			SendErrorResponse(c, http.StatusInternalServerError)
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, GeneralResponse{
+			Status: StatusOK,
 		})
 	}
 }
@@ -279,11 +359,23 @@ func main() {
 
 	client := todo_protobuf_v1.NewToDoServiceClient(conn)
 
-	router.POST("/api/v1/tasks", CreateHandlerCreateTask(client))
-	router.GET("/api/v1/tasks", CreateHandlerGetTaskList(client))
-	router.GET("/api/v1/tasks/:id", CreateHandlerGetTaskByID(client))
-	router.PATCH("/api/v1/tasks/:id", CreateHandlerUpdateTaskByID(client))
-	router.DELETE("/api/v1/tasks/:id", CreateHandlerDeleteTaskByID(client))
+	const apiBasePath = "/api/v1/"
+	
+	apiAuth := router.Group(apiBasePath)
+	apiAuth.Use(CreateJWTAuthMiddleware(client))
+	{
+		apiAuth.POST("/tasks", CreateHandlerCreateTask(client))
+		apiAuth.GET("/tasks", CreateHandlerGetTaskList(client))
+		apiAuth.GET("/tasks/:id", CreateHandlerGetTaskByID(client))
+		apiAuth.PATCH("/tasks/:id", CreateHandlerUpdateTaskByID(client))
+		apiAuth.DELETE("/tasks/:id", CreateHandlerDeleteTaskByID(client))
+		apiAuth.GET("/logout", CreateHandlerLogout(client))
+	}
+
+	apiNoAuth := router.Group(apiBasePath)
+	{
+		apiNoAuth.POST("/login", CreateHandlerLogin(client))
+	}
 
 	router.Run("localhost:8080")
 }
