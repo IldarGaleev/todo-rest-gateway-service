@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"todoapiservice/internal/app/configapplication"
 	"todoapiservice/internal/app/grpcapplication"
 	"todoapiservice/internal/app/httpapplication"
 	"todoapiservice/internal/http/handlers/authhandler"
@@ -23,11 +24,13 @@ func main() {
 		),
 	)
 
+	appConf := configapplication.MustLoadConfig()
+
 	gRPCApp := grpcapplication.New(
 		log,
 	)
 
-	client, err := gRPCApp.Start("localhost", 9090)
+	client, err := gRPCApp.Start(appConf.GrpcHostname, appConf.GrpcPort)
 
 	if err != nil {
 		panic(err)
@@ -66,7 +69,7 @@ func main() {
 		authMiddleware,
 	)
 
-	err = httpApp.Run("localhost", 8080)
+	err = httpApp.Run(appConf.APIHostname, appConf.APIPort)
 
 	if err != nil {
 		panic(err)
