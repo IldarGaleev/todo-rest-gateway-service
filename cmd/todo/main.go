@@ -1,19 +1,19 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
+	"todoapiservice/internal/app"
 	"todoapiservice/internal/app/configapplication"
-	"todoapiservice/internal/app/grpcapplication"
-	"todoapiservice/internal/app/httpapplication"
-	"todoapiservice/internal/http/handlers/authhandler"
-	"todoapiservice/internal/http/handlers/todoitemshandler"
-	"todoapiservice/internal/http/middlewares/jwtmiddleware"
-	"todoapiservice/internal/services/authprovider"
-	"todoapiservice/internal/services/todoprovider"
 )
 
 func main() {
+
+	appConf := configapplication.MustLoadConfig()
 
 	log := slog.New(
 		slog.NewTextHandler(
@@ -24,54 +24,28 @@ func main() {
 		),
 	)
 
-	appConf := configapplication.MustLoadConfig()
-
-	gRPCApp := grpcapplication.New(
-		log,
-	)
-
-	client, err := gRPCApp.Start(appConf.GrpcHostname, appConf.GrpcPort)
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer func() {
-		err := gRPCApp.Stop()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	authProvider := authprovider.New(log, *client)
-	todoProvider := todoprovider.New(log, *client)
-
-	authHandle := authhandler.New(log, authProvider)
-	authMiddleware := jwtmiddleware.New(log, authProvider)
-	todoItemHandler := todoitemshandler.New(
-		log,
-		todoProvider,
-		todoProvider,
-		todoProvider,
-		todoProvider,
-	)
-
 	const apiBasePath = "/api/v1/"
 
-	httpApp := httpapplication.New(
+	mainApp := app.New(
 		log,
+		appConf,
 		apiBasePath,
-		todoItemHandler,
-		todoItemHandler,
-		todoItemHandler,
-		todoItemHandler,
-		authHandle,
-		authMiddleware,
 	)
 
-	err = httpApp.Run(appConf.APIHostname, appConf.APIPort)
+	mainApp.MustRun()
 
-	if err != nil {
-		panic(err)
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info("Shutdown Server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	mainApp.MustStop(ctx)
+	select {
+	case <-ctx.Done():
+		log.Warn("timeout of 5 seconds.")
 	}
+	log.Info("Server exiting")
 }
