@@ -11,7 +11,7 @@ type AppConfig struct {
 	GrpcPort     int    `env:"GRPC_PORT" env-default:"9090"`
 
 	APIHostname string `env:"API_HOSTNAME" env-default:"localhost"`
-	APIPort     int    `env:"GRPC_PORT" env-default:"8080"`
+	APIPort     int    `env:"API_PORT" env-default:"8080"`
 }
 
 // MustLoadConfig Returns app configuration. Panic if failed
