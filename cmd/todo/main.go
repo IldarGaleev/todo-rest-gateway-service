@@ -2,32 +2,27 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 	"todoapiservice/internal/app"
 	"todoapiservice/internal/app/configapplication"
+	"todoapiservice/internal/lib/applogging"
 )
 
 func main() {
 
 	appConf := configapplication.MustLoadConfig()
 
-	log := slog.New(
-		slog.NewTextHandler(
-			os.Stdout,
-			&slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		),
-	)
+	loggingApp := applogging.New(applogging.EnvMode(appConf.EnvMode))
+
+	logging := loggingApp.Logging.With("module", "main")
 
 	const apiBasePath = "/api/v1/"
 
 	mainApp := app.New(
-		log,
+		loggingApp.Logging,
 		appConf,
 		apiBasePath,
 	)
@@ -38,14 +33,14 @@ func main() {
 
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Info("Shutdown Server ...")
+	logging.Info("Shutdown Server ...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	mainApp.MustStop(ctx)
 	select {
 	case <-ctx.Done():
-		log.Warn("timeout of 5 seconds.")
+		logging.Warn("timeout of 5 seconds.")
 	}
-	log.Info("Server exiting")
+	logging.Info("Server exiting")
 }
