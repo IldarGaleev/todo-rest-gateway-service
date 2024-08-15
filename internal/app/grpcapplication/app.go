@@ -31,7 +31,7 @@ func unaryInterceptor(
 	invoker grpc.UnaryInvoker,
 	opts ...grpc.CallOption,
 ) error {
-
+	//TODO: unaryInterceptor not implement
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+"1234")
 	err := invoker(authCtx, method, req, reply, cc, opts...)
 
@@ -48,8 +48,10 @@ func unaryInterceptor(
 }
 
 func New(logger *slog.Logger) *GRPCApplication {
+	log := logger.With("module", "grpcapplication")
+	log.With("method", "New").Error("gRPC unaryInterceptor not implement!")
 	return &GRPCApplication{
-		logger: logger.With("module", "grpcapplication"),
+		logger: log,
 	}
 }
 
