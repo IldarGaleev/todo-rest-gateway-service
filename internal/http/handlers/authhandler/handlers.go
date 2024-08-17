@@ -33,50 +33,46 @@ func New(
 	}
 }
 
-func (h *AuthHandler) CreateHandlerLogin() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (h *AuthHandler) HandlerLogin(c *gin.Context) {
 
-		email, pass, hasAuth := c.Request.BasicAuth()
+	email, pass, hasAuth := c.Request.BasicAuth()
 
-		if !hasAuth {
-			c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
-			handlers.SendErrorResponse(c, http.StatusUnauthorized)
-			return
-		}
-
-		user, err := h.authenticator.Login(c.Request.Context(), email, pass)
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.LoginResponse{
-			GeneralResponse: httpdto.GeneralResponse{
-				Status: httpdto.StatusOK,
-			},
-			Token: *user.JWT,
-		})
+	if !hasAuth {
+		c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+		handlers.SendErrorResponse(c, http.StatusUnauthorized)
+		return
 	}
+
+	user, err := h.authenticator.Login(c.Request.Context(), email, pass)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.LoginResponse{
+		GeneralResponse: httpdto.GeneralResponse{
+			Status: httpdto.StatusOK,
+		},
+		Token: *user.JWT,
+	})
 }
 
-func (h *AuthHandler) CreateHandlerLogout() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.GetString("jwtToken")
+func (h *AuthHandler) HandlerLogout(c *gin.Context) {
+	token := c.GetString("jwtToken")
 
-		err := h.authenticator.Logout(
-			c.Request.Context(),
-			coredto.User{
-				JWT: &token,
-			})
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.GeneralResponse{
-			Status: httpdto.StatusOK,
+	err := h.authenticator.Logout(
+		c.Request.Context(),
+		coredto.User{
+			JWT: &token,
 		})
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
 	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.GeneralResponse{
+		Status: httpdto.StatusOK,
+	})
 }
