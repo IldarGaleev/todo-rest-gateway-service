@@ -76,7 +76,7 @@ func (p *AuthProvider) CheckSecret(ctx context.Context, secret string) (*coredto
 	})
 
 	if err != nil {
-		if status.Code(err) == codes.PermissionDenied {
+		if status.Code(err) == codes.Unauthenticated {
 			return nil, ErrPermissionDenied
 		}
 		if status.Code(err) == codes.InvalidArgument {
