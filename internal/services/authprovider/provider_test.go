@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"testing"
 	"todoapiservice/internal/app/grpcapplication/mocks"
+	"todoapiservice/internal/services/coredto"
 )
 
 func TestAuthProvider_CheckSecret_ValidToken(t *testing.T) {
@@ -132,4 +133,76 @@ func TestAuthProvider_Login_ServerUnavailable(t *testing.T) {
 
 	require.ErrorIs(t, err, ErrAuthInternal)
 	require.Nil(t, user)
+}
+
+func TestAuthProvider_Logout_Valid(t *testing.T) {
+	logger := slog.Default()
+	pr := mocks.New(false)
+	instance := New(logger, pr)
+	ctx := context.TODO()
+
+	jwt := "1:user1"
+	err := instance.Logout(ctx, coredto.User{JWT: &jwt})
+
+	require.NoError(t, err)
+}
+
+func TestAuthProvider_Logout_Invalid(t *testing.T) {
+	logger := slog.Default()
+	pr := mocks.New(false)
+	instance := New(logger, pr)
+	ctx := context.TODO()
+
+	testData := []struct {
+		name string
+		jwt  string
+	}{
+		{
+			name: "Empty token",
+			jwt:  "",
+		},
+		{
+			name: "Wrong token",
+			jwt:  "1:invalid",
+		},
+	}
+
+	for _, data := range testData {
+		t.Run(data.name, func(t *testing.T) {
+			err := instance.Logout(ctx, coredto.User{JWT: &data.jwt})
+			require.ErrorIs(t, err, ErrAuthInternal)
+		})
+	}
+}
+
+func TestAuthProvider_Logout_ServerUnavailable(t *testing.T) {
+	logger := slog.Default()
+	pr := mocks.New(true)
+	instance := New(logger, pr)
+	ctx := context.TODO()
+
+	jwt := "1:user1"
+	err := instance.Logout(ctx, coredto.User{JWT: &jwt})
+
+	require.ErrorIs(t, err, ErrAuthInternal)
+}
+
+func TestAuthProvider_FullSequence(t *testing.T) {
+	logger := slog.Default()
+	pr := mocks.New(false)
+	instance := New(logger, pr)
+	ctx := context.TODO()
+
+	//Login
+	user, err := instance.Login(ctx, "user1", "pass")
+	require.NoError(t, err)
+
+	//Logout
+	err = instance.Logout(ctx, *user)
+	require.NoError(t, err)
+
+	//Logout again must return fail
+	err = instance.Logout(ctx, *user)
+	require.ErrorIs(t, err, ErrAuthInternal)
+
 }
