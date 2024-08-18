@@ -39,16 +39,13 @@ func (p ToDoGrpcMock) Login(
 		return nil, fmt.Errorf("service is down")
 	}
 
-	switch in.GetEmail() {
-	case "user1":
-		{
-			return &todoprotobufv1.LoginResponce{
-				Token: "1:user1",
-			}, nil
-		}
-	default:
-		return nil, status.Error(codes.NotFound, "User not found")
+	if in.GetEmail() == "user1" && in.GetPassword() == "pass" {
+		return &todoprotobufv1.LoginResponce{
+			Token: "1:user1",
+		}, nil
+
 	}
+	return nil, status.Error(codes.PermissionDenied, "Username or password incorrect")
 }
 
 func (p ToDoGrpcMock) Logout(
@@ -101,7 +98,7 @@ func (p ToDoGrpcMock) CheckSecret(
 		}
 	}
 
-	return nil, status.Error(codes.PermissionDenied, "Permission denied")
+	return nil, status.Error(codes.Unauthenticated, "Permission denied")
 }
 
 func (p ToDoGrpcMock) CreateTask(
