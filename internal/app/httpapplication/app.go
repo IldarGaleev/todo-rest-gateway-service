@@ -90,6 +90,7 @@ func (app *HttpApp) Run(host string, port int) error {
 		Handler: app.router.Handler(),
 	}
 
+	app.srv = srv
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		app.logger.Error("http app run error", slog.Any("err", err))
 		return errors.Join(ErrHttpAppRunError, err)

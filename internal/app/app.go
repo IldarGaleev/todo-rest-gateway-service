@@ -30,7 +30,7 @@ type IHTTPServer interface {
 	Stop(ctx context.Context) error
 }
 
-type App struct {
+type MainApp struct {
 	logger      *slog.Logger
 	confApp     *configapplication.AppConfig
 	grpcApp     IGRPCClient
@@ -42,13 +42,13 @@ func New(
 	logger *slog.Logger,
 	appConf *configapplication.AppConfig,
 	apiBasePath string,
-) *App {
+) *MainApp {
 
 	gRPCApp := grpcapplication.New(
 		logger,
 	)
 
-	return &App{
+	return &MainApp{
 		logger:      logger,
 		confApp:     appConf,
 		grpcApp:     gRPCApp,
@@ -56,21 +56,21 @@ func New(
 	}
 }
 
-func (app *App) MustRun() {
+func (rApp *MainApp) MustRun() {
 
-	client, err := app.grpcApp.Start(app.confApp.GrpcHostname, app.confApp.GrpcPort)
+	client, err := rApp.grpcApp.Start(rApp.confApp.GrpcHostname, rApp.confApp.GrpcPort)
 
 	if err != nil {
 		panic(err)
 	}
 
-	authProvider := authprovider.New(app.logger, *client)
-	todoProvider := todoprovider.New(app.logger, *client)
+	authProvider := authprovider.New(rApp.logger, *client)
+	todoProvider := todoprovider.New(rApp.logger, *client)
 
-	authHandle := authhandler.New(app.logger, authProvider)
-	authMiddleware := jwtmiddleware.New(app.logger, authProvider)
+	authHandle := authhandler.New(rApp.logger, authProvider)
+	authMiddleware := jwtmiddleware.New(rApp.logger, authProvider)
 	todoItemHandler := todoitemshandler.New(
-		app.logger,
+		rApp.logger,
 		todoProvider,
 		todoProvider,
 		todoProvider,
@@ -78,8 +78,8 @@ func (app *App) MustRun() {
 	)
 
 	httpApp := httpapplication.New(
-		app.logger,
-		app.apiBasePath,
+		rApp.logger,
+		rApp.apiBasePath,
 		todoItemHandler,
 		todoItemHandler,
 		todoItemHandler,
@@ -88,17 +88,17 @@ func (app *App) MustRun() {
 		authMiddleware,
 	)
 
-	err = httpApp.Run(app.confApp.APIHostname, app.confApp.APIPort)
+	rApp.httpApp = httpApp
+
+	err = httpApp.Run(rApp.confApp.APIHostname, rApp.confApp.APIPort)
 	if err != nil {
 		panic(err)
 	}
-
-	app.httpApp = httpApp
 }
 
-func (app *App) MustStop(ctx context.Context) {
-	errHttp := app.httpApp.Stop(ctx)
-	errGrpc := app.grpcApp.Stop()
+func (rApp *MainApp) MustStop(ctx context.Context) {
+	errHttp := rApp.httpApp.Stop(ctx)
+	errGrpc := rApp.grpcApp.Stop()
 
 	if errHttp != nil || errGrpc != nil {
 		panic(errors.Join(ErrAppFailedStopServices, errHttp, errGrpc))
