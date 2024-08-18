@@ -58,22 +58,20 @@ func (p ToDoGrpcMock) Logout(
 	tokenData, err := decodeToken(in.GetToken())
 
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "Bad token")
+		return nil, status.Error(codes.FailedPrecondition, "Bad token")
 	}
 
-	switch tokenData[0] {
-	case "1":
-		{
-			p.blackList[tokenData[0]] = struct{}{}
-			return &todoprotobufv1.LogoutResponce{
-				Success: true,
-			}, nil
-		}
-	default:
+	if _, ok := p.blackList[tokenData[0]]; !ok && tokenData[0] == "1" && tokenData[1] == "user1" {
+		p.blackList[tokenData[0]] = struct{}{}
 		return &todoprotobufv1.LogoutResponce{
-			Success: false,
-		}, status.Error(codes.NotFound, "User not found")
+			Success: true,
+		}, nil
 	}
+
+	return &todoprotobufv1.LogoutResponce{
+		Success: false,
+	}, status.Error(codes.Unauthenticated, "User not found")
+
 }
 
 func (p ToDoGrpcMock) CheckSecret(
@@ -86,7 +84,7 @@ func (p ToDoGrpcMock) CheckSecret(
 
 	tokenData, err := decodeToken(in.GetSecret())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "Bad token")
+		return nil, status.Error(codes.FailedPrecondition, "Bad token")
 	}
 
 	if tokenData[0] == "1" {
