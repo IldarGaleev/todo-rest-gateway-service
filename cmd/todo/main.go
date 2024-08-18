@@ -14,7 +14,9 @@ import (
 
 func main() {
 
-	appConf := configapplication.MustLoadConfig()
+	confPath := "config.yml"
+
+	appConf := configapplication.MustLoadConfig(confPath)
 
 	loggingApp := applogging.New(applogging.EnvMode(appConf.EnvMode))
 

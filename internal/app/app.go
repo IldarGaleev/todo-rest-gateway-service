@@ -58,7 +58,7 @@ func New(
 
 func (rApp *MainApp) MustRun() {
 
-	client, err := rApp.grpcApp.Start(rApp.confApp.GrpcHostname, rApp.confApp.GrpcPort)
+	client, err := rApp.grpcApp.Start(rApp.confApp.Grpc.Hostname, rApp.confApp.Grpc.Port)
 
 	if err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func (rApp *MainApp) MustRun() {
 
 	rApp.httpApp = httpApp
 
-	err = httpApp.Run(rApp.confApp.APIHostname, rApp.confApp.APIPort)
+	err = httpApp.Run(rApp.confApp.Api.Hostname, rApp.confApp.Api.Port)
 	if err != nil {
 		panic(err)
 	}

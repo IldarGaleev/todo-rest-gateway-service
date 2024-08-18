@@ -1,0 +1,10 @@
+
+env-mode: 'local' # 'dev','prod'
+
+grpc-client:
+  port: 9090
+  hostname: "localhost"
+
+api:
+  port: 8080
+  hostname: "localhost"
