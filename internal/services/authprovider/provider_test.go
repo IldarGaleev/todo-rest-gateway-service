@@ -13,7 +13,7 @@ func TestAuthProvider_CheckSecret_ValidToken(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	user, err := instance.CheckSecret(ctx, "1:user1")
 
@@ -26,7 +26,7 @@ func TestAuthProvider_CheckSecret_InvalidToken(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	testData := []struct {
 		name  string
@@ -60,7 +60,7 @@ func TestAuthProvider_CheckSecret_ServerUnavailable(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(true)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	user, err := instance.CheckSecret(ctx, "1:user1")
 
@@ -72,7 +72,7 @@ func TestAuthProvider_Login_Valid(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	user, err := instance.Login(ctx, "user1", "pass")
 
@@ -84,7 +84,7 @@ func TestAuthProvider_Login_Invalid(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	testData := []struct {
 		name     string
@@ -127,7 +127,7 @@ func TestAuthProvider_Login_ServerUnavailable(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(true)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	user, err := instance.Login(ctx, "user1", "pass")
 
@@ -139,7 +139,7 @@ func TestAuthProvider_Logout_Valid(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	jwt := "1:user1"
 	err := instance.Logout(ctx, coredto.User{JWT: &jwt})
@@ -151,7 +151,7 @@ func TestAuthProvider_Logout_Invalid(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	testData := []struct {
 		name string
@@ -179,7 +179,7 @@ func TestAuthProvider_Logout_ServerUnavailable(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(true)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	jwt := "1:user1"
 	err := instance.Logout(ctx, coredto.User{JWT: &jwt})
@@ -191,7 +191,7 @@ func TestAuthProvider_FullSequence(t *testing.T) {
 	logger := slog.Default()
 	pr := mocks.New(false)
 	instance := New(logger, pr)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	//Login
 	user, err := instance.Login(ctx, "user1", "pass")
