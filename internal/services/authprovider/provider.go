@@ -76,7 +76,13 @@ func (p *AuthProvider) CheckSecret(ctx context.Context, secret string) (*coredto
 	})
 
 	if err != nil {
-		return nil, err
+		code := status.Code(err)
+
+		if code == codes.Unauthenticated || code == codes.FailedPrecondition || code == codes.InvalidArgument {
+			return nil, ErrPermissionDenied
+		}
+
+		return nil, errors.Join(ErrAuthInternal, err)
 	}
 
 	userID := resp.GetUserId()

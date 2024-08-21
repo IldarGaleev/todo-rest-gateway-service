@@ -2,24 +2,31 @@
 package configapplication
 
 import (
+	"errors"
 	"github.com/ilyakaznacheev/cleanenv"
+	"os"
 )
 
 type AppConfig struct {
-	EnvMode      string `env:"ENV_MODE" env-default:"prod"`
-	GrpcHostname string `env:"GRPC_HOSTNAME" env-default:"localhost"`
-	GrpcPort     int    `env:"GRPC_PORT" env-default:"9090"`
+	EnvMode string `yaml:"env-mode" env-description:"" env:"ENV_MODE" env-default:"prod"`
 
-	APIHostname string `env:"API_HOSTNAME" env-default:"localhost"`
-	APIPort     int    `env:"API_PORT" env-default:"8080"`
+	Grpc struct {
+		Hostname string `yaml:"hostname" env-description:"" env:"HOSTNAME" env-default:"localhost"`
+		Port     int    `yaml:"port" env-description:"" env:"PORT" env-default:"9090"`
+	} `yaml:"grpc-client" env-prefix:"GRPC_"`
+
+	Api struct {
+		Hostname string `yaml:"hostname" env-description:"" env:"HOSTNAME" env-default:"localhost"`
+		Port     int    `yaml:"port" env-description:"" env:"PORT" env-default:"8080"`
+	} `yaml:"api" env-prefix:"API_"`
 }
 
 // MustLoadConfig Returns app configuration. Panic if failed
-func MustLoadConfig() *AppConfig {
-	//TODO: add loading config from file
+func MustLoadConfig(confPath string) *AppConfig {
 	var appConf AppConfig
-	err := cleanenv.ReadEnv(&appConf)
-	if err != nil {
+
+	err := cleanenv.ReadConfig(confPath, &appConf)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
 	return &appConf

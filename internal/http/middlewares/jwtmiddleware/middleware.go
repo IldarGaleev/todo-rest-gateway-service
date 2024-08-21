@@ -41,35 +41,33 @@ func sendErrorStatus(c *gin.Context, code int) {
 	c.Abort()
 }
 
-func (m *JWTMiddleware) CreateMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.Request.Header.Get("Authorization")
+func (m *JWTMiddleware) Middleware(c *gin.Context) {
+	token := c.Request.Header.Get("Authorization")
 
-		if token == "" {
-			sendErrorStatus(c, http.StatusUnauthorized)
-			return
-		}
-
-		parts := strings.Split(token, " ")
-		method, token := parts[0], parts[1]
-
-		if strings.ToLower(method) != "bearer" {
-			sendErrorStatus(c, http.StatusBadRequest)
-			return
-		}
-
-		user, err := m.secretChecker.CheckSecret(
-			c.Request.Context(),
-			token,
-		)
-
-		if err != nil || user.JWT == nil || user.UserID == nil {
-			sendErrorStatus(c, http.StatusUnauthorized)
-			return
-		}
-
-		c.Set("userID", *user.UserID)
-		c.Set("jwtToken", *user.JWT)
-		c.Next()
+	if token == "" {
+		sendErrorStatus(c, http.StatusUnauthorized)
+		return
 	}
+
+	parts := strings.Split(token, " ")
+	method, token := parts[0], parts[1]
+
+	if strings.ToLower(method) != "bearer" {
+		sendErrorStatus(c, http.StatusBadRequest)
+		return
+	}
+
+	user, err := m.secretChecker.CheckSecret(
+		c.Request.Context(),
+		token,
+	)
+
+	if err != nil || user.JWT == nil || user.UserID == nil {
+		sendErrorStatus(c, http.StatusUnauthorized)
+		return
+	}
+
+	c.Set("userID", *user.UserID)
+	c.Set("jwtToken", *user.JWT)
+	c.Next()
 }

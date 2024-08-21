@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +14,9 @@ import (
 
 func main() {
 
-	appConf := configapplication.MustLoadConfig()
+	confPath := "config.yml"
+
+	appConf := configapplication.MustLoadConfig(confPath)
 
 	loggingApp := applogging.New(applogging.EnvMode(appConf.EnvMode))
 
@@ -27,7 +30,7 @@ func main() {
 		apiBasePath,
 	)
 
-	mainApp.MustRun()
+	go mainApp.MustRun()
 
 	quit := make(chan os.Signal, 1)
 
@@ -38,9 +41,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	mainApp.MustStop(ctx)
-	select {
-	case <-ctx.Done():
-		logging.Warn("timeout of 5 seconds.")
+
+	<-ctx.Done()
+
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		logging.Warn("app stop timeout")
 	}
 	logging.Info("Server exiting")
 }

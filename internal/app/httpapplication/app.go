@@ -16,29 +16,29 @@ var (
 )
 
 type IMiddleware interface {
-	CreateMiddleware() gin.HandlerFunc
+	Middleware(c *gin.Context)
 }
 
 type IItemCreateHandler interface {
-	CreateHandlerCreateTask() gin.HandlerFunc
+	HandlerCreateTask(c *gin.Context)
 }
 
 type IItemGetterHandler interface {
-	CreateHandlerGetTaskList() gin.HandlerFunc
-	CreateHandlerGetTaskByID() gin.HandlerFunc
+	HandlerGetTaskList(c *gin.Context)
+	HandlerGetTaskByID(c *gin.Context)
 }
 
 type IItemUpdateHandler interface {
-	CreateHandlerUpdateTaskByID() gin.HandlerFunc
+	HandlerUpdateTaskByID(c *gin.Context)
 }
 
 type IItemDeleteHandler interface {
-	CreateHandlerDeleteTaskByID() gin.HandlerFunc
+	HandlerDeleteTaskByID(c *gin.Context)
 }
 
 type IAuthHandler interface {
-	CreateHandlerLogin() gin.HandlerFunc
-	CreateHandlerLogout() gin.HandlerFunc
+	HandlerLogin(c *gin.Context)
+	HandlerLogout(c *gin.Context)
 }
 
 type HttpApp struct {
@@ -66,16 +66,16 @@ func New(
 	apiAuth := router.Group(apiBasePath)
 	apiNoAuth := router.Group(apiBasePath)
 
-	apiAuth.Use(authMiddleware.CreateMiddleware())
+	apiAuth.Use(authMiddleware.Middleware)
 
-	apiAuth.POST("/tasks", itemCreateHandler.CreateHandlerCreateTask())
-	apiAuth.GET("/tasks", itemGetterHandler.CreateHandlerGetTaskList())
-	apiAuth.GET("/tasks/:id", itemGetterHandler.CreateHandlerGetTaskByID())
-	apiAuth.PATCH("/tasks/:id", itemUpdateHandler.CreateHandlerUpdateTaskByID())
-	apiAuth.DELETE("/tasks/:id", itemDeleteHandler.CreateHandlerDeleteTaskByID())
-	apiAuth.GET("/logout", authHandler.CreateHandlerLogout())
+	apiAuth.POST("/tasks", itemCreateHandler.HandlerCreateTask)
+	apiAuth.GET("/tasks", itemGetterHandler.HandlerGetTaskList)
+	apiAuth.GET("/tasks/:id", itemGetterHandler.HandlerGetTaskByID)
+	apiAuth.PATCH("/tasks/:id", itemUpdateHandler.HandlerUpdateTaskByID)
+	apiAuth.DELETE("/tasks/:id", itemDeleteHandler.HandlerDeleteTaskByID)
+	apiAuth.GET("/logout", authHandler.HandlerLogout)
 
-	apiNoAuth.POST("/login", authHandler.CreateHandlerLogin())
+	apiNoAuth.POST("/login", authHandler.HandlerLogin)
 
 	return &HttpApp{
 		logger: logger.With(slog.String("module", "httpapplication")),
@@ -90,6 +90,7 @@ func (app *HttpApp) Run(host string, port int) error {
 		Handler: app.router.Handler(),
 	}
 
+	app.srv = srv
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		app.logger.Error("http app run error", slog.Any("err", err))
 		return errors.Join(ErrHttpAppRunError, err)

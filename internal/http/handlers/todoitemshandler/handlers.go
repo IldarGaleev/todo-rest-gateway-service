@@ -55,198 +55,191 @@ func New(
 	}
 }
 
-func (h *ToDoHandlers) CreateHandlerCreateTask() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var changes httpdto.TaskItemChanges
-		err := c.BindJSON(&changes)
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusBadRequest)
-			return
-		}
+func (h *ToDoHandlers) HandlerCreateTask(c *gin.Context) {
 
-		userID := c.GetUint64("userID")
-
-		newItem, err := h.itemCreator.Create(
-			c.Request.Context(),
-			coredto.User{
-				UserID: &userID,
-			},
-			*changes.Title,
-		)
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.GetTaskByIDResponse{
-			GeneralResponse: httpdto.GeneralResponse{
-				Status: httpdto.StatusOK,
-			},
-			Task: httpdto.TaskItem{
-				ID:    *newItem.ItemID,
-				Title: *newItem.Title,
-			},
-		})
+	var changes httpdto.TaskItemChanges
+	err := c.BindJSON(&changes)
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusBadRequest)
+		return
 	}
-}
 
-func (h *ToDoHandlers) CreateHandlerGetTaskList() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userID := c.GetUint64("userID")
+	userID := c.GetUint64("userID")
 
-		items, err := h.itemGetter.GetList(
-			c.Request.Context(),
-			coredto.User{
-				UserID: &userID,
-			},
-		)
-
-		if err != nil {
-			c.IndentedJSON(
-				http.StatusInternalServerError,
-				httpdto.GeneralResponse{
-					Status: httpdto.StatusError,
-				})
-			return
-		}
-
-		tasks := make([]httpdto.TaskItem, 0, len(items))
-		for _, item := range items {
-			tasks = append(tasks, httpdto.TaskItem{
-				ID:     *item.ItemID,
-				Title:  *item.Title,
-				IsDone: *item.IsDone,
-			})
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.GetTaskListResponse{
-			GeneralResponse: httpdto.GeneralResponse{
-				Status: httpdto.StatusOK,
-			},
-			Tasks: tasks,
-		})
-	}
-}
-
-func (h *ToDoHandlers) CreateHandlerGetTaskByID() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		userID := c.GetUint64("userID")
-		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		item, err := h.itemGetter.GetByID(
-			c.Request.Context(),
-			coredto.User{
-				UserID: &userID,
-			},
-			taskID,
-		)
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.GetTaskByIDResponse{
-			GeneralResponse: httpdto.GeneralResponse{
-				Status: httpdto.StatusOK,
-			},
-			Task: httpdto.TaskItem{
-				ID:     *item.ItemID,
-				Title:  *item.Title,
-				IsDone: *item.IsDone,
-			},
+	newItem, err := h.itemCreator.Create(
+		c.Request.Context(),
+		coredto.User{
+			UserID: &userID,
 		},
-		)
+		*changes.Title,
+	)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
 	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.GetTaskByIDResponse{
+		GeneralResponse: httpdto.GeneralResponse{
+			Status: httpdto.StatusOK,
+		},
+		Task: httpdto.TaskItem{
+			ID:    *newItem.ItemID,
+			Title: *newItem.Title,
+		},
+	})
+
 }
 
-func (h *ToDoHandlers) CreateHandlerUpdateTaskByID() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (h *ToDoHandlers) HandlerGetTaskList(c *gin.Context) {
+	userID := c.GetUint64("userID")
 
-		userID := c.GetUint64("userID")
-		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	items, err := h.itemGetter.GetList(
+		c.Request.Context(),
+		coredto.User{
+			UserID: &userID,
+		},
+	)
 
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusBadRequest)
-			return
-		}
-
-		var changes httpdto.TaskItemChanges
-
-		err = c.BindJSON(&changes)
-
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusBadRequest)
-			return
-		}
-
-		_, err = h.itemUpdater.Update(
-			c.Request.Context(),
-			coredto.ToDoItem{
-				Owner: &coredto.User{
-					UserID: &userID,
-				},
-				ItemID: &taskID,
-				Title:  changes.Title,
-				IsDone: changes.IsDone,
+	if err != nil {
+		c.IndentedJSON(
+			http.StatusInternalServerError,
+			httpdto.GeneralResponse{
+				Status: httpdto.StatusError,
 			})
+		return
+	}
 
-		if err != nil {
-			if errors.Is(err, todoprovider.ErrToDoNotFound) {
-				handlers.SendErrorResponse(c, http.StatusNotFound)
-				return
-			}
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, httpdto.GeneralResponse{
-			Status: httpdto.StatusOK,
+	tasks := make([]httpdto.TaskItem, 0, len(items))
+	for _, item := range items {
+		tasks = append(tasks, httpdto.TaskItem{
+			ID:     *item.ItemID,
+			Title:  *item.Title,
+			IsDone: *item.IsDone,
 		})
 	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.GetTaskListResponse{
+		GeneralResponse: httpdto.GeneralResponse{
+			Status: httpdto.StatusOK,
+		},
+		Tasks: tasks,
+	})
+
 }
 
-func (h *ToDoHandlers) CreateHandlerDeleteTaskByID() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (h *ToDoHandlers) HandlerGetTaskByID(c *gin.Context) {
 
-		userID := c.GetUint64("userID")
-		taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	userID := c.GetUint64("userID")
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
 
-		if err != nil {
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		err = h.itemDeleter.Delete(
-			c.Request.Context(),
-			coredto.ToDoItem{
-				Owner: &coredto.User{
-					UserID: &userID,
-				},
-				ItemID: &taskID,
-			},
-		)
-
-		if err != nil {
-			if errors.Is(err, todoprovider.ErrToDoNotFound) {
-				handlers.SendErrorResponse(c, http.StatusNotFound)
-				return
-			}
-			handlers.SendErrorResponse(c, http.StatusInternalServerError)
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK,
-			httpdto.GeneralResponse{
-				Status: httpdto.StatusOK,
-			},
-		)
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
 	}
+
+	item, err := h.itemGetter.GetByID(
+		c.Request.Context(),
+		coredto.User{
+			UserID: &userID,
+		},
+		taskID,
+	)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.GetTaskByIDResponse{
+		GeneralResponse: httpdto.GeneralResponse{
+			Status: httpdto.StatusOK,
+		},
+		Task: httpdto.TaskItem{
+			ID:     *item.ItemID,
+			Title:  *item.Title,
+			IsDone: *item.IsDone,
+		},
+	},
+	)
+}
+
+func (h *ToDoHandlers) HandlerUpdateTaskByID(c *gin.Context) {
+
+	userID := c.GetUint64("userID")
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusBadRequest)
+		return
+	}
+
+	var changes httpdto.TaskItemChanges
+
+	err = c.BindJSON(&changes)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.itemUpdater.Update(
+		c.Request.Context(),
+		coredto.ToDoItem{
+			Owner: &coredto.User{
+				UserID: &userID,
+			},
+			ItemID: &taskID,
+			Title:  changes.Title,
+			IsDone: changes.IsDone,
+		})
+
+	if err != nil {
+		if errors.Is(err, todoprovider.ErrToDoNotFound) {
+			handlers.SendErrorResponse(c, http.StatusNotFound)
+			return
+		}
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, httpdto.GeneralResponse{
+		Status: httpdto.StatusOK,
+	})
+}
+
+func (h *ToDoHandlers) HandlerDeleteTaskByID(c *gin.Context) {
+
+	userID := c.GetUint64("userID")
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 0)
+
+	if err != nil {
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
+	}
+
+	err = h.itemDeleter.Delete(
+		c.Request.Context(),
+		coredto.ToDoItem{
+			Owner: &coredto.User{
+				UserID: &userID,
+			},
+			ItemID: &taskID,
+		},
+	)
+
+	if err != nil {
+		if errors.Is(err, todoprovider.ErrToDoNotFound) {
+			handlers.SendErrorResponse(c, http.StatusNotFound)
+			return
+		}
+		handlers.SendErrorResponse(c, http.StatusInternalServerError)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK,
+		httpdto.GeneralResponse{
+			Status: httpdto.StatusOK,
+		},
+	)
 }
