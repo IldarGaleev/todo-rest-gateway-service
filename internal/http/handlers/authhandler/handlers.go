@@ -33,6 +33,15 @@ func New(
 	}
 }
 
+// HandlerLogin
+// @Summary 	User login
+// @Router 		/login [POST]
+// @Tags 		Auth
+// @Produce		json
+// @Security 	BasicAuth
+// @Success 200 {object} LoginResponse
+// @Failure 401 {object} GeneralResponse
+// @Failure 500 {object} GeneralResponse
 func (h *AuthHandler) HandlerLogin(c *gin.Context) {
 
 	email, pass, hasAuth := c.Request.BasicAuth()
@@ -58,6 +67,15 @@ func (h *AuthHandler) HandlerLogin(c *gin.Context) {
 	})
 }
 
+// HandlerLogout
+// @Security 	ApiKeyAuth
+// @Summary 	User logout
+// @Router 		/logout [GET]
+// @Tags 		Auth
+// @Produce		json
+// @Success 200 {object} GeneralResponse
+// @Failure 401 {object} GeneralResponse
+// @Failure 500 {object} GeneralResponse
 func (h *AuthHandler) HandlerLogout(c *gin.Context) {
 	token := c.GetString("jwtToken")
 
