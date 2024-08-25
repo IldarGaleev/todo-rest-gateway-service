@@ -1,6 +1,6 @@
 package httpdto
 
-type GeneralResponseStatus string
+type GeneralResponseStatus string //@Name GeneralResponseStatus
 
 const (
 	StatusOK    = GeneralResponseStatus("ok")
@@ -9,4 +9,4 @@ const (
 
 type GeneralResponse struct {
 	Status GeneralResponseStatus `json:"status"`
-}
+} //@Name GeneralResponse

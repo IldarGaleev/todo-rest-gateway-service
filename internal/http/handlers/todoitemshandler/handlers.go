@@ -55,6 +55,16 @@ func New(
 	}
 }
 
+// HandlerCreateTask
+// @Security 	ApiKeyAuth
+// @Summary 	Create new task
+// @Router 		/tasks [POST]
+// @Param 		request body TaskItemChanges true "New task fields"
+// @Tags 		TodoList
+// @Produce		json
+//
+// @Success 200 		{object} 	GetTaskByIDResponse
+// @Failure 400,401,500 {object}	GeneralResponse
 func (h *ToDoHandlers) HandlerCreateTask(c *gin.Context) {
 
 	var changes httpdto.TaskItemChanges
@@ -91,6 +101,15 @@ func (h *ToDoHandlers) HandlerCreateTask(c *gin.Context) {
 
 }
 
+// HandlerGetTaskList
+// @Security 	ApiKeyAuth
+// @Summary 	Get tasks list
+// @Router 		/tasks [GET]
+// @Tags 		TodoList
+// @Produce		json
+//
+// @Success 200 	{object} 	GetTaskListResponse
+// @Failure 401,500	{object}	GeneralResponse
 func (h *ToDoHandlers) HandlerGetTaskList(c *gin.Context) {
 	userID := c.GetUint64("userID")
 
@@ -128,6 +147,16 @@ func (h *ToDoHandlers) HandlerGetTaskList(c *gin.Context) {
 
 }
 
+// HandlerGetTaskByID
+// @Security 	ApiKeyAuth
+// @Summary 	Get single task by ID
+// @Router 		/tasks/{id} [GET]
+// @Param 		id	path int true "Task ID"
+// @Tags 		TodoList
+// @Produce		json
+//
+// @Success 200 			{object}	GetTaskByIDResponse
+// @Failure 400,401,404,500 {object}	GeneralResponse
 func (h *ToDoHandlers) HandlerGetTaskByID(c *gin.Context) {
 
 	userID := c.GetUint64("userID")
@@ -164,6 +193,17 @@ func (h *ToDoHandlers) HandlerGetTaskByID(c *gin.Context) {
 	)
 }
 
+// HandlerUpdateTaskByID
+// @Security 	ApiKeyAuth
+// @Summary 	Change task fields by ID
+// @Router 		/tasks/{id} [PATCH]
+// @Param 		id	path int true "Task ID"
+// @Param 		request body TaskItemChanges true "Fields changes"
+// @Tags 		TodoList
+// @Produce		json
+//
+// @Success 200 			{object}	GeneralResponse
+// @Failure 400,401,404,500 {object}	GeneralResponse
 func (h *ToDoHandlers) HandlerUpdateTaskByID(c *gin.Context) {
 
 	userID := c.GetUint64("userID")
@@ -208,6 +248,16 @@ func (h *ToDoHandlers) HandlerUpdateTaskByID(c *gin.Context) {
 	})
 }
 
+// HandlerDeleteTaskByID
+// @Security 	ApiKeyAuth
+// @Summary 	Delete task by ID
+// @Router 		/tasks/{id} [DELETE]
+// @Param 		id	path int true "Task ID"
+// @Tags 		TodoList
+// @Produce		json
+//
+// @Success 200 			{object}	GeneralResponse
+// @Failure 400,401,404,500 {object}	GeneralResponse
 func (h *ToDoHandlers) HandlerDeleteTaskByID(c *gin.Context) {
 
 	userID := c.GetUint64("userID")
