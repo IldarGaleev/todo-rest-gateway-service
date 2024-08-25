@@ -1,0 +1,282 @@
+basePath: /api/v1/
+definitions:
+  GeneralResponse:
+    properties:
+      status:
+        $ref: '#/definitions/GeneralResponseStatus'
+    type: object
+  GeneralResponseStatus:
+    enum:
+    - ok
+    - error
+    type: string
+    x-enum-varnames:
+    - StatusOK
+    - StatusError
+  GetTaskByIDResponse:
+    properties:
+      status:
+        $ref: '#/definitions/GeneralResponseStatus'
+      task:
+        $ref: '#/definitions/TaskItem'
+    type: object
+  GetTaskListResponse:
+    properties:
+      status:
+        $ref: '#/definitions/GeneralResponseStatus'
+      tasks:
+        items:
+          $ref: '#/definitions/TaskItem'
+        type: array
+    type: object
+  LoginResponse:
+    properties:
+      status:
+        $ref: '#/definitions/GeneralResponseStatus'
+      token:
+        type: string
+    type: object
+  TaskItem:
+    properties:
+      id:
+        type: integer
+      is_done:
+        type: boolean
+      title:
+        type: string
+    type: object
+  TaskItemChanges:
+    properties:
+      is_done:
+        type: boolean
+      title:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Todo list API service
+  license:
+    name: MIT
+    url: https://mit-license.org/
+  title: ToDo list app
+  version: "1.0"
+paths:
+  /login:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - BasicAuth: []
+      summary: User login
+      tags:
+      - Auth
+  /logout:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: User logout
+      tags:
+      - Auth
+  /tasks:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetTaskListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get tasks list
+      tags:
+      - TodoList
+    post:
+      parameters:
+      - description: New task fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/TaskItemChanges'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetTaskByIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create new task
+      tags:
+      - TodoList
+  /tasks/{id}:
+    delete:
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete task by ID
+      tags:
+      - TodoList
+    get:
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GetTaskByIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get single task by ID
+      tags:
+      - TodoList
+    patch:
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields changes
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/TaskItemChanges'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/GeneralResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Change task fields by ID
+      tags:
+      - TodoList
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  BasicAuth:
+    type: basic
+swagger: "2.0"

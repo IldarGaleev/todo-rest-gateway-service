@@ -7,6 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
+
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
+
+	_ "todoapiservice/docs"
 )
 
 var (
@@ -76,6 +81,11 @@ func New(
 	apiAuth.GET("/logout", authHandler.HandlerLogout)
 
 	apiNoAuth.POST("/login", authHandler.HandlerLogin)
+
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/index.html")
+	})
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return &HttpApp{
 		logger: logger.With(slog.String("module", "httpapplication")),
